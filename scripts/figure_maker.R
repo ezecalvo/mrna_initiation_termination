@@ -71,139 +71,118 @@ GeomSplitViolin <- ggproto("GeomSplitViolin", GeomViolin,
                              }
                            })
 
+#load in all processed and analyzed data for plotting data from the TSS_TES_short_read_analysis_code.R
 ##### Figure 1
+## ------------- FIGURE 1A: schematic of first and last exons ------------- ##
+img <- image_read("/projectnb/evolution/carroll8/APRIL2025_TSS_TES_final_analyses/gtex_analysis/figure1_output-1.png")
+plot(img)
+img_grob <- rasterGrob(as.raster(img), interpolate = TRUE)
+figure1A <- img_grob
 
-####FIGURE1A####
-pdf_path <- "/projectnb/encore/carroll8/carroll8/2023_HITindexoutputsforPITApaper/Final_Code/Figure1A_850by100.pdf"
-pdf_image <- image_read(pdf_path)
-plot(pdf_image)
-png_path <- "/projectnb/encore/carroll8/carroll8/2023_HITindexoutputsforPITApaper/Final_Code/29NOV2023_Figure1A_850by100.png"  # Specify the path to save the PNG image
-image_write(pdf_image, path = png_path)
-Figure1A <- rasterGrob(as.raster(pdf_image))
 
-###FIGURE 1B#####
-setwd("/projectnb/encore/carroll8/CODE_FOR_PITA/FINAL/DATA")
-load("FIGURE1B_Data.RData")
-FIGURE1Bdata$type <- c("first", "first", "first", "first", "last", "last", "last", "last")
-FIGURE1Bdata$group <- c(1,2,3,4,1,2,3,4)
-
-mycols  <- c("gray22", "gray76")
-breaks = 10**(1:5 * 1)
-
-Figure1B_final <- ggplot(FIGURE1Bdata, aes(x = group, y = mean, fill = type)) + 
-  geom_bar(stat = "identity", position = position_dodge()) +
-  geom_errorbar(aes(ymin = mean - SEM, ymax = mean + SEM), 
-                position = position_dodge(width = 0.9), 
-                width = 0.2) +
-  scale_fill_manual(values = mycols) +
+## -----FIGURE 1B: total number of annotated first and last exons per gene---- ## 
+figure1B <- ggplot(figure1bdata, aes(x = Var1, y = Freq, fill = type)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "exons per gene", y = "number of genes", fill = "exon type") +  # custom title
+  theme_classic(base_size = 12) +
   scale_y_continuous(
-    trans = 'log10',
-    breaks = c(1, 10, 100, 1000, 10000),
-    labels = sci_labels
+    breaks = seq(0, max(figure1bdata$Freq), by = 2000)
   ) +
-  theme_cowplot() +
+  scale_fill_manual(
+    values = c("FE" = "black", "LE" = "grey"),
+    labels = c("FE" = "first", "LE" = "last")  # <- legend labels
+  ) +
   theme(
-    axis.line = element_line(colour = 'black', linewidth = 0.5),
-    axis.text.x = element_text(angle = 0, vjust = 0, hjust = .5, size = 11),
-    axis.text.y = element_text(angle = 0, vjust = 0, hjust = .5, size = 11),
-    axis.title = element_text(size = 12),
-    legend.text = element_text(size = 11),
-    legend.title = element_text(size = 12),
-    strip.text = element_text(size = 20),
-    plot.background = element_rect(fill = "white", colour = "white"),
-    panel.background = element_rect(fill = "white", colour = "white"),
-    legend.position = c(0.99, 0.93),  # Adjust the legend position (top-right)
-    legend.justification = c(1, 1),  # Adjust the justification for top-right corner
-    legend.title.align = 0.5
+    legend.position = c(0.85, 0.75),  # adjust to taste
+    legend.justification = c("right", "top"),
+    legend.direction = "vertical",   # stacked
+    legend.background = element_blank(),
+    legend.key = element_blank(),
+    legend.title = element_text(size = 8),
+    legend.text = element_text(size = 8)
+  )
+figure1B
+
+
+## ------ FIGURE 1C: distribution of pearson's r vals of # first~last exons across all gtex samples ------ ##
+
+figure1C <- ggplot(data.frame(figure1cdata), aes(x = figure1cdata)) +
+  geom_density(fill = "#72bcd5", alpha = 0.6, color = "#1e466e", linewidth = 1) +
+  geom_vline(xintercept = r_mean, linetype = "dashed", color = "black") +
+  labs(x = "pearson r", y = "density") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+  xlim(-1, 1) +
+  theme_classic(base_size = 14)  
+
+
+##  ------ FIGURE 1C INSET: one representative ovary sample, plotting all genes by number of FE/LEs expressed  ------##
+
+fig1c_inset_data
+
+# Define values for plotting
+r <- fig1c_correlation_line 
+x_start <- 2
+y_start <- 2
+x_end <- 6
+y_end <- y_start + r * (x_end - x_start)
+
+figure1C_inset <- ggplot(fig1c_inset_data, aes(Freq.x, Freq.y)) +
+  geom_point(aes(color = n), size = 3) +
+  scale_color_gradientn(
+    name = "gene count",
+    # colors = c("#aadce0", "#72bcd5", "#528fad", "#1e466e", "navy"),
+    colors = c(
+      "#bde2eb",  # pale blue, 
+      "#4a9fc1",  # strong blue
+      "#1e466e",  # navy
+      "#081d40"   # deep navy
+    ),
+    trans = "log",
+    breaks = c(1, 10, 100, 1000),
+    labels = scales::number_format(accuracy = 1),
+    guide = guide_colorbar(
+      barwidth = 2,barheight = 0.3,title.position = "top",title.theme = element_text(size = 3),label.theme = element_text(size = 3)
+    )
   ) +
-  labs(
-    x = "exons per gene",
-    y = "mean exon count",
-    fill = "exon type"
-  ) +
-  guides(fill = guide_legend(title = "exon type"))
-
-
-Figure1B <- Figure1B_final + theme(plot.margin = unit(c(0,0,0,0), "cm"))
-
-###FIGURE 1C#####
-setwd("/projectnb/encore/carroll8/CODE_FOR_PITA/FINAL/DATA/")
-load("FIGURE1C_Data.RData")
-eachgene <- FIGURE1Cdata[[1]]
-numberofobservations <- FIGURE1Cdata[[2]]
-pearsoncor <- FIGURE1Cdata[[3]]
-
-Figure1C <- ggplot(eachgene, aes(Freq.x, Freq.y)) +
-  geom_point(data = numberofobservations, aes(color = n), size = 4) +
-  scale_color_gradientn(name = "genecount",  # Stack title
-                        colors = c("#aadce0" , "#679AA5", "#1c5062","#1e466e"),
-                        # colors = c("#aadce0", "#72bcd5", "#376795", "#1e466e"),
-                        trans = "log",  # Apply log scale
-                        breaks = c(1, 10, 100),  # Specify breaks for log scale
-                        labels = scales::number_format(accuracy = 1)
-  ) +
-  geom_smooth(data = eachgene, aes(Freq.x, Freq.y), color = 'black', method = "lm", se = FALSE) +
-  scale_y_continuous(breaks = c(0, 1, 2, 3, 4, 5, 6)) +
-  scale_x_continuous(breaks = c(0, 1, 2, 3, 4, 5, 6)) +
+  geom_segment(x = x_start, y = y_start, xend = x_end, yend = y_end, color = "black") +
+  coord_cartesian(xlim = c(1, 5), ylim = c(1, 5)) +
+  scale_x_continuous(breaks = 1:5) +
+  scale_y_continuous(breaks = 1:5) +
   theme_cowplot() +
   labs(
-    x = "number of first exons",
-    y = "number of last exons",
-    fill = NULL  # Remove the fill legend title
-  ) +
-  guides(fill = guide_legend(title = NULL)) +  # Remove the fill legend title
+    x = "number of first exons", y = "number of last exons") +
   theme(
-    legend.title.align = -0.5,  # Center the legend title
-    text = element_text(size = 12),  # Set default text size
-    axis.text = element_text(size = 11),  # Set axis label text size
-    axis.title = element_text(size = 12),  # Set axis title text size
-    legend.text = element_text(size = 11),  # Set legend text size
-    legend.title = element_text(size = 12),  # Set legend title text size
-    legend.position = "top",  # Place legend above the plot
-    legend.justification = "center",  # Center the legend within the plot area
-    legend.box = "horizontal"  # Arrange legend items horizontally
+    legend.position = "top",legend.justification = "center", legend.box = "horizontal",axis.title = element_text(size = 10)  # shrink both x and y titles
   )
 
-Figure1C
+figure1C_inset
 
-### FIGURE1D ###
-setwd("/projectnb/encore/carroll8/CODE_FOR_PITA/FINAL/DATA/")
-load("FIGURE1D_Data.RData")
 
-FIGURE1D_matrix <- as.matrix(FIGURE1Ddata)
-col_fun = colorRamp2(c(.4, .5, .6, .7), c("#aadce0", "#72bcd5", "#528fad", "#1e466e"))
+## ------ FIGURE 1DA: Correlation in AFEPSI~ALEPSI of a given ordinal position in genes w 2+ AFEs and ALEs ------ ##
 
-Figure1D_heatmap <- Heatmap(FIGURE1D_matrix, name = "Pearson R", col = col_fun, show_row_names = TRUE, width = unit(3, "cm"),
-                            row_dend_width = unit(1.5, "cm"), column_labels = "", row_names_gp = gpar(fontsize = 11),
-                            show_heatmap_legend = TRUE,
-                            heatmap_legend_param = list(direction = "horizontal", legend_position = "right"))
-
-Figure1D <- draw(Figure1D_heatmap, heatmap_legend_side = "top")
-Figure1D <- grid.grabExpr(draw(Figure1D))
-
-### FIGURE 1EA ### 
-setwd("/projectnb/encore/carroll8/CODE_FOR_PITA/FINAL/DATA/")
-load("FIGURE1E_Data.RData")
-
+figure1da_data <- unlist(figure1da_data)
 AFEorder <- c(1,1,1,1,1,2,2,2,2,2,3,3,3,3,3,4,4,4,4,4,5,5,5,5,5)
 ALEorder <- c(1,2,3,4,5,1,2,3,4,5,1,2,3,4,5,1,2,3,4,5,1,2,3,4,5)
-AFE_ALE_pearson <- data.frame(AFEorder, ALEorder, FIGURE1Edata)
 
-Figure1EA <- ggplot(AFE_ALE_pearson, aes(x = AFEorder, y = ALEorder)) +
-  geom_tile(aes(fill = FIGURE1Edata)) +
+figure1da_data_df  <- data.frame( AFEorder = AFEorder, ALEorder = ALEorder, value = figure1da_data)
+
+figure1DA <- ggplot(figure1da_data_df, aes(x = AFEorder, y = ALEorder)) +
+  geom_tile(aes(fill = value)) +
   scale_fill_gradientn(
     colours = c("#e76254", "#ef8a47", "#f7aa58", "white", "#72bcd5", "#528fad", "#1e466e"),
+    # colours = c( "#1e466e", "#528fad", "#72bcd5","white", "#f7aa58","#ef8a47","#e76254"),
     breaks = c(-0.5, -.25, 0,.25,  0.5),
     labels = c(-0.5, -.25, 0,.25, 0.5),
     limits = c(-0.5, 0.5),
     name = ""
-  ) +  theme(
-    plot.background = element_rect(fill = "white", color = "white"),
-    panel.background = element_rect(fill = "white", color = "white"),
-    legend.position = "none",
+  )  +
+  theme(
+    plot.background = element_rect(fill = "white", colour = "white"),
+    panel.background = element_rect(fill = "white", colour = "white"),
     axis.ticks = element_blank(),
-    axis.title.x = element_text(margin = margin(t = 10), size = 12),
-    axis.title.y = element_text(margin = margin(r = 10, b = -20), size = 12),
+    legend.position = "none",
+    axis.title.x = element_text(margin = margin(t = 5), size = 12),
+    axis.title.y = element_text(margin = margin(r = 5, b = -20), size = 12),
     axis.text.x = element_text(margin = margin(t = -10), size = 12),
     axis.text.y = element_text(margin = margin(r = -10), size = 12)
   ) +
@@ -212,17 +191,20 @@ Figure1EA <- ggplot(AFE_ALE_pearson, aes(x = AFEorder, y = ALEorder)) +
     y = "ALE Order"
   )
 
-Figure1EA
 
-### FIGURE1EB ###
+## ------ FIGURE 1DA: Correlation in RELATIVE USAGE between first and last exons of a given ordinal position in genes using exactly 3 AFEs and 3 ALES ------ ##
+
+data <- figure1db_data 
+data <- as.vector(as.matrix(data))
 AFEorder <- c(1,1,1,2,2,2,3,3,3)
 ALEorder <- c(1,2,3,1,2,3,1,2,3)
-AFE_ALE_pearson <- data.frame(AFEorder, ALEorder, FIGURE1EBdata)
+AFE_ALE_pearson_1DB <- data.frame(AFEorder, ALEorder, data)
 
-Figure1EB <- ggplot(AFE_ALE_pearson, aes(x = AFEorder, y = ALEorder)) +
-  geom_tile(aes(fill = FIGURE1EBdata)) +
+figure1DB <- ggplot(AFE_ALE_pearson_1DB, aes(x = AFEorder, y = ALEorder)) +
+  geom_tile(aes(fill = data)) +
   scale_fill_gradientn(
     colours = c("#e76254", "#ef8a47", "#f7aa58", "white", "#72bcd5", "#528fad", "#1e466e"),
+    # colours = c( "#1e466e", "#528fad", "#72bcd5","white", "#f7aa58","#ef8a47","#e76254"),
     breaks = c(-0.5, -.25, 0,.25,  0.5),
     labels = c(-0.5, -.25, 0,.25, 0.5),
     limits = c(-0.5, 0.5),
@@ -242,17 +224,21 @@ Figure1EB <- ggplot(AFE_ALE_pearson, aes(x = AFEorder, y = ALEorder)) +
     axis.text.y = element_text(margin = margin(r = -10), size = 12)
   ) +
   labs(
-    x = "AFE Order",
-    y = "ALE Order"
+    x = "",
+    y = ""
   )
+figure1DB
 
-Figure1EB_withlegend <- ggplot(AFE_ALE_pearson, aes(x = AFEorder, y = ALEorder)) + geom_tile(aes(fill = FIGURE1EBdata)) + 
+
+## ------------------------------ Figure 1D legend  ------------------------ ##
+
+Figure1DB_withlegend <- ggplot(figure1DB, aes(x = AFEorder, y = ALEorder)) + geom_tile(aes(fill = data)) + 
   scale_fill_gradientn(
     colours = c("#e76254", "#ef8a47", "#f7aa58", "white", "#72bcd5", "#528fad", "#1e466e"),
     breaks = c(-0.5, -.25, 0,.25,  0.5),
     labels = c(-0.5, -.25, 0,.25, 0.5),
     limits = c(-0.5, 0.5),
-    name = ""
+    name = "pearson r"
   ) +  
   theme(plot.background = element_rect(fill = "white", colour = "white"), 
         panel.background = element_rect(fill = "white", colour = "white"),  axis.ticks = element_blank(),
@@ -262,21 +248,21 @@ Figure1EB_withlegend <- ggplot(AFE_ALE_pearson, aes(x = AFEorder, y = ALEorder))
         axis.text.y = element_text(margin = margin(r = -10), size = 12),
         legend.title = element_text(hjust = 0.5)) +  labs(x = "AFE Order", y = "ALE Order")
 
-legend_1E <- get_legend(Figure1EB_withlegend)
+figure1D_legend <- get_legend(Figure1DB_withlegend)
 
-#Plot figure 1
-figure1 <-  ggdraw() +
+
+## ------------------------ FULL FIGURE 1 ------------------------------ ##
+
+Figure1 <-  ggdraw() +
   theme(plot.background = element_rect(fill = "white", colour = "white")) +
-  draw_plot(Figure1A, x = 0.01, y = .75, width = .95, height = .15) +
-  draw_plot(Figure1B, x = 0.02, y = .4, width = .29, height = .31) +
-  draw_plot(Figure1C, x = 0.35, y = .4, width = .29, height = 0.31) +
-  draw_plot(Figure1D, x = .68, y = .425, width = .27, height = 0.30) +
-  draw_plot(Figure1EA, x = 0.02, y = 0.01, width = 0.44, height = 0.35) +
-  draw_plot(Figure1EB, x = .49, y = 0.015, width = 0.415, height = 0.35) +
-  draw_plot(legend_1E, x = .92, y = 0.02, width = 0.08, height = 0.4)
+  draw_plot(figure1A, x = 0.01, y = .8, width = .95, height = .15) +
+  draw_plot(figure1B, x = 0.01, y = .36, width = .35, height = .38) +
+  draw_plot(figure1C, x = 0.35, y = .35, width = .64, height = 0.38) +
+  draw_plot(figure1C_inset, x = .48, y = .52, width = .25, height = 0.25) +
+  draw_plot(figure1DA, x = 0.02, y = 0.01, width = 0.40, height = 0.32) +
+  draw_plot(figure1DB, x = .46, y = 0.01, width = 0.4, height = 0.32) +
+  draw_plot(figure1D_legend, x = .88, y = 0.04, width = 0.1, height = 0.3)
 
-setwd("/projectnb/encore/carroll8/CODE_FOR_PITA/FINAL/DATA/")
-ggsave("07DEC2023_figure1_updates.pdf", plot = figure1, width = 8.5, height = 10)
 
 
 ##### Figure 2
@@ -841,45 +827,74 @@ dev.off()
 ################
 #Supp figures
 #####extended figure 1A ####
-#the numbers are directly inputted from the "means" output  
-x <- draw.pairwise.venn(1447, 851, 259, 
-                        category = c("AFEs", "ALEs"), 
-                        fill = c("gray22", "gray76"),
-                        cat.pos = c(0, 0),
-                        fontfamily = rep("Helvetica", 3),
-                        cat.fontface = rep("plain", 2), 
-                        cat.fontfamily = rep("Helvetica", 2))
+# Save as a grob for cowplot
+figureS1A <- grid.grabExpr({
+  draw.pairwise.venn(
+    area1 = 577, #these come from figures1adata
+    area2 = 309,  #these come from figures1adata
+    cross.area = 108, #these come from figures1adata
+    category = c("genes expressing AFEs", "genes expressing ALEs"),
+    fill = c("gray", "gray76"),
+    cat.pos = c(0, 0),
+    fontfamily = rep("sans", 3),         
+    cat.fontface = rep("plain", 2),
+    cat.fontfamily = rep("sans", 2)
+  )
+})
 
-EXTFIG1A <- x
+figureS1A
 
-###extended figure 1B#####
-# Rename columns with unique names in order to allow for proper heatmap generation
-colnames(master_df) <- c("gene", paste0("", seq_along(master_df)[-1]))
-master_dataframe <- master_df
-rownames(master_dataframe) <- master_dataframe[,1]
-master_dataframe_NAs <- master_dataframe
-master_dataframe_NAs <- as.matrix(master_dataframe_NAs[,-1])
-master_dataframe <- as.matrix(master_dataframe[,-1])
-master_dataframe[is.na(master_dataframe)] <- 0 #in order to do hierarchical clustering, set NA to 0 (NA expression means no expression) 
-min(master_dataframe_NAs, na.rm = TRUE) #determine minimum PSI value in order to define heatmap color range  
-ggplot_data <- melt(master_dataframe)
-#extract legend only 
-col_fun_NAs <- colorRamp2(c(.1, .55,  1), c("#aadce0","#72bcd5","#1e466e"))  # Define the color gradient
-extract_legend <- ggplot(ggplot_data, aes(x = Var2, y = value)) +
-  geom_tile(aes(fill = value)) +
-  scale_fill_gradientn( colours = c("#aadce0","#72bcd5","#1e466e"), breaks = c(.1, .55, 1), labels = c(.1, .55, 1), limits = c(.1, 1), guide = guide_colorbar(title = NULL))
-maxPSI_legend <- get_legend(extract_legend)
-#extract heatmap only 
-col_fun <- colorRamp2(c(0, .09, .1, .55,  1), c("white" , "white", "#aadce0","#72bcd5", "#1e466e"))  # Define the color gradient
-maxPSI_heatmap <- Heatmap(master_dataframe, show_row_names = FALSE, col = col_fun, cluster_rows = TRUE, cluster_columns = TRUE, km = 3, heatmap_legend_param = list(title = "maximum PSI", at = c(0.1, .55, 1), labels = c("0.1", ".55", "1"), limits = c(0.1, 1)), show_heatmap_legend = FALSE, row_title = "genes")
-maxPSI_heatmap <- draw(maxPSI_heatmap)
-maxPSI_heatmap <- grid.grabExpr(draw(maxPSI_heatmap))
 
-extended_figure1<-  ggdraw() +
+## ------------ FIGURE S1B : Mean Pearson's r by tissue type ------------  ##
+
+figures1b_data
+
+figureS1B <- ggplot(figures1b_data, aes(x = reorder(category, mean_correlation), y = mean_correlation)) +
+  geom_col(fill = "#72bcd5") +
+  coord_flip() +
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line.x = element_line(color = "black"),
+    axis.line.y = element_line(color = "black")
+  ) +
+  labs(
+    title = "",
+    x = "tissue category",
+    y = "mean pearson r"
+  )
+)
+
+## ------------ FIGURE S1C: Max AFEPSI and Max ALEPSI per gene  ------------  ##
+figures1cdata
+# Generate and capture heatmap as grob
+psi_pheatmap <- pheatmap(
+  figures1cdata,
+  color = colorRampPalette(c("white", "#72bcd5", "#528fad", "#1e466e"))(100),
+  breaks = c(seq(0, 0.94, length.out = 80), seq(0.95, 1, length.out = 20)),
+  cluster_rows = TRUE,
+  cluster_cols = TRUE,
+  show_rownames = FALSE,
+  silent = TRUE  
+)
+
+png("/path/tosaving/data/as/figure/psi_pheatmap",
+    width = 2400, height = 3200, res = 400)
+grid::grid.draw(psi_pheatmap$gtable)
+dev.off()
+
+figureS1C <- ggdraw() +
+  draw_image("/path/tosaving/data/as/figure/psi_pheatmap.png")
+
+
+## ------------------------ FULL SUPPPLEMENTAL FIGURE 1 ------------------------------ ##
+
+figureS1 <- ggdraw() +
   theme(plot.background = element_rect(fill = "white", colour = "white")) +
-  draw_plot(EXTFIG1A, x = 0.01, y = .65, width = .32, height = .25) +
-  draw_plot(maxPSI_heatmap, x = 0.34, y = .55, width = .57, height = .41) +
-  draw_plot(maxPSI_legend, x = 0.92, y = .69, width = .07, height = .12)
+  draw_plot(figureS1A, x = 0.00, y = 0.66, width = 0.33, height = 0.33) +
+  draw_plot(figureS1B, x = 0.33, y = 0.66, width = 0.33, height = 0.33) +
+  draw_plot(figureS1C,  x = 0.66, y = 0.66, width = 0.33, height = 0.33)
 
 #Schematics fig 1
 schematic_intra_mol_fig <- schematic_intra_mol %>% ggplot()+
